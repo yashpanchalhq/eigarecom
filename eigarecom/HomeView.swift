@@ -1,8 +1,10 @@
 import SwiftUI
+import SwiftData
 
 struct HomeView: View {
-    let viewModel = ViewModel()
+    @State private var viewModel = ViewModel()
     @State private var titleDetailPath = NavigationPath()
+    @Environment(\.modelContext) var modelContext
     
     var body: some View {
         NavigationStack(path: $titleDetailPath) {
@@ -40,41 +42,59 @@ struct HomeView: View {
                             .frame(width: geo.size.width, height: geo.size.height * 0.85)
                             .clipped()
                             
-                            HStack{
+                            HStack(spacing: 12){
                                 Button{
                                     titleDetailPath.append(viewModel.herotitle)
                                 }label: {
-                                    Text(Constants.playString)
-                                        .ghostButton()
+                                    Label(
+                                        Constants.playString,
+                                        systemImage: "play.fill"
+                                    )
+                                    .primaryActionButton()
                                 }
                                 
                                 Button{
-                                    
+                                    modelContext.insert(viewModel.herotitle)
+                                    do {
+                                        try modelContext.save()
+                                    } catch {
+                                        print("Failed to save title: \(error.localizedDescription)")
+                                    }
                                 }label: {
-                                    Text(Constants.downloadString)
-                                        .ghostButton()
+                                    Label(
+                                        Constants.downloadString,
+                                        systemImage: "arrow.down.to.line"
+                                    )
+                                    .secondaryActionButton()
                                 }
+                                .buttonStyle(.plain)
                             }
+                            .padding(.horizontal, 16 )
                             
                             HorizontalListView(
                                 header: Constants.trendingMovieString,
                                 titles: viewModel.trendingMovies
-                            )
+                            ){ title in
+                                titleDetailPath.append(title)
+                            }
                             HorizontalListView(
                                 header: Constants.trendingTVString,
                                 titles: viewModel.trendingTV
-                            )
+                            ){ title in
+                                titleDetailPath.append(title)
+                            }
                             HorizontalListView(
                                 header: Constants.topRatedMovieString,
                                 titles: viewModel.topRatedMovies
-                            )
+                            ){ title in
+                                titleDetailPath.append(title)
+                            }
                             HorizontalListView(
                                 header: Constants.topRatedTVString,
                                 titles: viewModel.topRatedTV
-                            )
-                        }
-                        .navigationDestination(for:Title.self) { title  in
-                            TitleDetailView(title: title)
+                            ){ title in
+                                titleDetailPath.append(title)
+                            }
                         }
                     case .failure(let error):
                         Text(error.localizedDescription)
@@ -84,11 +104,13 @@ struct HomeView: View {
                 .task {
                     await viewModel.getTitles()
                 }
+                .navigationDestination(for:Title.self) { title  in
+                    TitleDetailView(title: title)
+                }
             }
         }
     }
 }
-
 #Preview {
     HomeView()
 }
